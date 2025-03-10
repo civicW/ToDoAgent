@@ -10,23 +10,25 @@ import kotlinx.coroutines.withContext
 
 
 class SmsRepository {
-    suspend fun saveSmsData(sender: String, content: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun saveSmsData(sender: String?, content: String?): Boolean = withContext(Dispatchers.IO) {
         var connection: java.sql.Connection? = null
 
         try {
             connection = DatabaseHelper.getConnection()
 
-            // 检查字符集设置
-            connection?.createStatement()?.executeQuery("SHOW VARIABLES LIKE 'character%'")?.use { rs ->
-                while (rs.next()) {
-                    Log.d("SmsRepository", "${rs.getString(1)}: ${rs.getString(2)}")
-                }
+            // 设置连接的字符编码为 UTF-8
+            connection?.createStatement()?.use { stmt ->
+                stmt.execute("SET NAMES utf8mb4")
+                stmt.execute("SET CHARACTER SET utf8mb4")
+                stmt.execute("SET character_set_client = utf8mb4")
+                stmt.execute("SET character_set_connection = utf8mb4")
+                stmt.execute("SET character_set_results = utf8mb4")
             }
 
             val sql = "INSERT INTO Messages (sender, content) VALUES (?, ?)"
             connection?.prepareStatement(sql)?.use { stmt ->
-                stmt.setString(1, sender)
-                stmt.setString(2, content)
+                stmt.setBytes(1, (sender ?: "无标题").toByteArray(Charsets.UTF_8))
+                stmt.setBytes(2, (content ?: "无内容").toByteArray(Charsets.UTF_8))
                 //stmt.setString(3, timestamp)
 
                 // 打印实际插入的值

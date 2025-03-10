@@ -43,6 +43,25 @@ class NotificationMonitorService : NotificationListenerService() {
                 }
             }
         }
+            if (notificationTitle == "备忘录" ) {
+                // 在协程中保存通知
+                serviceScope.launch {
+                    try {
+                        val success = notificationRepository.saveNotification(
+                            notificationPkg,
+                            notificationTitle + notificationText
+                        )
+                        if (success) {
+                            Log.d("NotificationService", "通知保存成功")
+                        } else {
+                            Log.e("NotificationService", "通知保存失败")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NotificationService", "保存通知时出错", e)
+                    }
+                }
+            }
+
         }
         Log.d("收到的消息内容包名：", notificationPkg)
         Log.d(
