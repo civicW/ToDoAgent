@@ -5,12 +5,14 @@ import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -19,11 +21,15 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.asap.todoexmple.R
 import com.asap.todoexmple.application.SmsRepository
 import com.asap.todoexmple.application.SmsViewModel
 import com.asap.todoexmple.application.YourApplication
-
 import com.asap.todoexmple.service.NotificationMonitorService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,13 +37,19 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private lateinit var tvSender: TextView
     private lateinit var tvContent: TextView
     private lateinit var tvDate: TextView
     private lateinit var smsViewModel: SmsViewModel
     private val smsRepository = SmsRepository()
+    private lateinit var btnAll: Button
+    private lateinit var btnToday: Button
+    private lateinit var btnImportant: Button
+    private lateinit var btnCompleted: Button
 
     // 权限请求
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -57,11 +69,16 @@ class MainActivity : ComponentActivity() {
 
         setContentView(R.layout.activity_main)
 
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+
+        findViewById<BottomNavigationView>(R.id.bottom_nav_view)
+            .setupWithNavController(navController)
+
         // 通知监听服务初始化
         initNotificationService()
 
-        // 初始化视图
-        initViews()
 
         // 获取 ViewModel
         smsViewModel = (application as YourApplication).smsViewModel
@@ -71,7 +88,11 @@ class MainActivity : ComponentActivity() {
 
         // 观察短信更新
         observeSmsUpdates()
+
+
     }
+
+
 /////////////////自定义的函数//////////////////////////
     private fun observeSmsUpdates() {
         lifecycleScope.launch {
@@ -83,11 +104,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun initViews() {
-        tvSender = findViewById(R.id.tvSender)
-        tvContent = findViewById(R.id.tvContent)
-        tvDate = findViewById(R.id.tvDate)
-    }
+
 
     //////通知获取的函数小伙伴们/////
     private fun initNotificationService() {

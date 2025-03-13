@@ -2,11 +2,12 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id ("androidx.navigation.safeargs.kotlin")
 }
 
 android {
     namespace = "com.asap.todoexmple"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.asap.todoexmple"
@@ -51,6 +52,15 @@ android {
 }
 
 dependencies {
+    //外观
+
+    implementation ("androidx.appcompat:appcompat:1.4.1")
+    implementation ("com.google.android.material:material:1.5.0")
+    //fragment
+    implementation ("androidx.navigation:navigation-fragment-ktx:2.7.7")
+    implementation ("androidx.navigation:navigation-ui-ktx:2.7.7")
+    implementation ("androidx.fragment:fragment-ktx:1.6.2")
+
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     //implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
@@ -74,6 +84,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.recyclerview)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

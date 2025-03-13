@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="#F9FAFB">
 
-    <!-- 顶部搜索栏 -->
+    <!-- 搜索栏 -->
     <include
         android:id="@+id/searchBar"
         layout="@layout/search_bar"
@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toTopOf="parent"/>
 
-    <!-- 任务类别 -->
+    <!-- 分类按钮 -->
     <HorizontalScrollView
         android:id="@+id/categoryScroll"
         android:layout_width="match_parent"
@@ -69,28 +69,6 @@
         android:padding="16dp"
         android:clipToPadding="false"
         app:layout_constraintTop_toBottomOf="@id/categoryScroll"
-        
-        />
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
-    <!-- 底部导航栏 -->
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/nav_host_fragment"
-        android:name="androidx.navigation.fragment.NavHostFragment"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:defaultNavHost="true"
-        app:layout_constraintBottom_toTopOf="@id/bottom_nav_view"
-        app:layout_constraintTop_toTopOf="parent"
-        app:navGraph="@navigation/nav_graph" />
-
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_nav_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?android:attr/windowBackground"
-        app:itemIconTint="@color/bottom_nav_colors"
-        app:itemTextColor="@color/bottom_nav_colors"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_nav_menu" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout> 
