@@ -20,4 +20,8 @@
         android:icon="@android:drawable/ic_menu_myplaces"
         android:title="@string/profile"
         android:tint="#9CA3AF"/>
+<!--    <item-->
+<!--        android:id="@+id/settingsFragment"-->
+<!--        android:icon="@drawable/ic_settings"-->
+<!--        android:title="设置" />-->
 </menu> 

@@ -38,6 +38,7 @@ android {
     buildFeatures {
         compose = true
     }
+
 //    packagingOptions {
 //        exclude ("META-INF/DEPENDENCIES")
 //        exclude ("META-INF/LICENSE")
@@ -52,10 +53,15 @@ android {
 }
 
 dependencies {
+//    // HikariCP 依赖
+//    implementation ("com.zaxxer:HikariCP-android:2.4.0")
+//    // SLF4J 依赖 (HikariCP需要)
+//    implementation ("org.slf4j:slf4j-android:1.7.36")
+    implementation ("androidx.work:work-runtime-ktx:2.8.1")
     //外观
-
-    implementation ("androidx.appcompat:appcompat:1.4.1")
-    implementation ("com.google.android.material:material:1.5.0")
+    implementation ("androidx.appcompat:appcompat:1.6.1")
+    implementation ("com.google.android.material:material:1.9.0")
+    implementation ("de.hdodenhof:circleimageview:3.1.0")
     //fragment
     implementation ("androidx.navigation:navigation-fragment-ktx:2.7.7")
     implementation ("androidx.navigation:navigation-ui-ktx:2.7.7")
@@ -85,6 +91,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.firebase.components)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

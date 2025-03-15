@@ -64,7 +64,7 @@ class HomeFragment : Fragment() {
 
     private fun resetButtonStyles(buttons: List<Button>) {
         buttons.forEach { button ->
-            button.setBackgroundResource(R.drawable.button_rounded)
+            //button.setBackgroundResource(R.drawable.`button_rounded.xml`)
             button.setTextColor(requireContext().getColor(android.R.color.darker_gray))
             button.backgroundTintList = android.content.res.ColorStateList.valueOf(
                 requireContext().getColor(android.R.color.white)

@@ -25,4 +25,10 @@
         android:id="@+id/navigation_profile"
         android:name="com.asap.todoexmple.fragment.ProfileFragment"
         android:label="我的" />
+
+
+    <fragment
+        android:id="@+id/keepAliveSettingsFragment"
+        android:name="com.asap.todoexmple.fragment.KeepAliveSettingsFragment"
+        android:label="保活设置" />
 </navigation> 
