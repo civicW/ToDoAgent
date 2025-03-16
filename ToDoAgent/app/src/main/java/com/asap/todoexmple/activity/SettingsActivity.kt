@@ -14,6 +14,9 @@ import androidx.appcompat.widget.SwitchCompat
 import com.asap.todoexmple.R
 import com.asap.todoexmple.receiver.KeepAliveUtils
 import android.widget.Toast
+import android.widget.TextView
+import android.widget.ImageView
+import com.asap.todoexmple.util.UserManager
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -27,6 +30,9 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnBack).setOnClickListener {
             finish()
         }
+
+        // 设置用户信息区域点击事件
+        setupUserInfoSection()
 
         // 这里添加其他设置项的点击事件处理
         findViewById<View>(R.id.layoutNotification).setOnClickListener {
@@ -101,5 +107,32 @@ class SettingsActivity : AppCompatActivity() {
                     .build())
             }
         }
+    }
+
+    private fun setupUserInfoSection() {
+        val layoutUserInfo = findViewById<View>(R.id.layoutUserInfo)
+        val txtLoginStatus = findViewById<TextView>(R.id.txtLoginStatus)
+        val txtUserInfo = findViewById<TextView>(R.id.txtUserInfo)
+        val imgAvatar = findViewById<ImageView>(R.id.imgAvatar)
+
+        val isLoggedIn = UserManager.isLoggedIn(this)
+        
+        if (isLoggedIn) {
+            txtLoginStatus.text = UserManager.getUserName(this)
+            txtUserInfo.visibility = View.VISIBLE
+            txtUserInfo.text = "ID: ${UserManager.getUserId(this)}"
+        } else {
+            txtLoginStatus.text = "登录/注册"
+            txtUserInfo.visibility = View.GONE
+        }
+
+        layoutUserInfo.setOnClickListener {
+            if (!isLoggedIn) {
+                startActivity(Intent(this, LoginActivity::class.java))
+            }
+        }
+
+        findViewById<View>(R.id.layoutAccountSecurity).visibility = 
+            if (isLoggedIn) View.VISIBLE else View.GONE
     }
 } 

@@ -68,6 +68,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <!-- 用户信息/登录按钮 -->
                     <LinearLayout
                         android:id="@+id/layoutUserInfo"
                         android:layout_width="match_parent"
@@ -83,6 +84,7 @@
                             android:src="@mipmap/ic_launcher" />
 
                         <LinearLayout
+                            android:id="@+id/layoutUserLoginInfo"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
@@ -90,20 +92,21 @@
                             android:orientation="vertical">
 
                             <TextView
-                                android:id="@+id/txtUsername"
+                                android:id="@+id/txtLoginStatus"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="张三"
+                                android:text="登录/注册"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/txtUserId"
+                                android:id="@+id/txtUserInfo"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="ID: 12345678"
+                                android:text="点击登录账号"
                                 android:textColor="@color/gray_500"
-                                android:textSize="14sp" />
+                                android:textSize="14sp"
+                                android:visibility="gone" />
                         </LinearLayout>
 
                         <ImageView
@@ -118,6 +121,7 @@
                         android:layout_height="1dp"
                         android:background="@color/gray_200" />
 
+                    <!-- 账号安全 -->
                     <LinearLayout
                         android:id="@+id/layoutAccountSecurity"
                         android:layout_width="match_parent"
@@ -136,7 +140,7 @@
                                 android:layout_height="16dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_shield"
-                                android:tint="@color/blue_500" />
+                                app:tint="@color/blue_500" />
                         </FrameLayout>
 
                         <TextView
@@ -151,7 +155,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:src="@drawable/ic_chevron_right"
-                            android:tint="@color/gray_400" />
+                            app:tint="@color/gray_400" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -503,7 +507,7 @@
                         android:layout_height="wrap_content"
                         android:background="?attr/selectableItemBackground"
                         android:gravity="center_vertical"
-    android:padding="16dp">
+                        android:padding="16dp">
 
                         <FrameLayout
                             android:layout_width="32dp"
@@ -530,7 +534,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="8dp"
-                            android:text="v1.0.0"
+                            android:text="v0.0.4"
                             android:textColor="@color/gray_500" />
 
                         <ImageView
@@ -548,8 +552,8 @@
                     <!-- 退出登录 -->
                     <LinearLayout
                         android:id="@+id/layoutLogout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:background="?attr/selectableItemBackground"
                         android:gravity="center_vertical"
                         android:padding="16dp">
@@ -578,6 +582,6 @@
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-</LinearLayout> 
+        </LinearLayout>
     </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout> 

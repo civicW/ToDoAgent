@@ -1,6 +1,7 @@
 package com.asap.todoexmple.activity
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -29,20 +30,24 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
 import com.asap.todoexmple.service.SmsHandler
 import android.app.ActivityManager
+import android.content.ContentValues
+import android.content.Context
 import android.net.Uri
 import android.provider.Settings
 import com.asap.todoexmple.receiver.KeepAliveUtils
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModelProvider
+import com.asap.todoexmple.util.LocalDatabaseHelper
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var smsViewModel: SmsViewModel
-    private val smsRepository = SmsRepository()
+    //private val smsRepository = SmsRepository()
     private val smsHandler = SmsHandler.getInstance()
     private val PERMISSION_REQUEST_CODE = 123
-    private val NOTIFICATION_PERMISSION_REQUEST_CODE = 456
+    //private val NOTIFICATION_PERMISSION_REQUEST_CODE = 456
+    private lateinit var dbHelper: LocalDatabaseHelper
 
     // 权限请求
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -125,10 +130,31 @@ class MainActivity : AppCompatActivity() {
 
         // 初始化保活措施
         initKeepAlive()
+
+        // 初始化数据库
+        initDatabase()
+
+        // 获取当前登录用户ID
+        //val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        //val userId = sharedPreferences.getString("current_user_id", null)
+        val userId = "1"
+        // 如果有登录用户，执行同步
+        if (userId != null) {
+            Log.d("MainActivity","同步开始执行")
+            // 立即同步一次
+            LocalDatabaseHelper.startImmediateSync(this, userId)
+            Log.d("MainActivity","同步执行完成")
+            // 设置定期同步（如果还没设置的话）
+            LocalDatabaseHelper.setupPeriodicSync(this, userId)
+            Log.d("MainActivity","同步定时执行完成")
+        }
+
     }
 
 
-/////////////////自定义的函数//////////////////////////
+
+
+    /////////////////自定义的函数//////////////////////////
     private fun observeSmsUpdates() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -261,7 +287,54 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
+    //本地数据库
+    @SuppressLint("Range")
+    private fun initDatabase() {
+        try {
+            val dbHelper = LocalDatabaseHelper(this)
+            //插入测试数据
+            val db = dbHelper.writableDatabase
+
+            // 先检查表是否有数据
+            val cursor = db.rawQuery("SELECT * FROM user_settings", null)
+            if (cursor.count == 0) {
+                // 如果没有数据，插入测试数据
+                val values = ContentValues().apply {
+                    put("user_id", "1")
+                    put("dark_mode", 0)
+                    put("language", "zh")
+                }
+                db.insert("user_settings", null, values)
+                Log.d("MainActivity", "测试数据插入成功")
+            }
+            cursor.close()
+
+//            // 验证数据
+//            val checkCursor = db.rawQuery("SELECT * FROM user_settings", null)
+//            if (checkCursor.moveToFirst()) {
+//                val userId = checkCursor.getString(checkCursor.getColumnIndex("user_id"))
+//                val darkMode = checkCursor.getInt(checkCursor.getColumnIndex("dark_mode"))
+//                val language = checkCursor.getString(checkCursor.getColumnIndex("language"))
+//                Log.d("MainActivity", "数据验证: user_id=$userId, dark_mode=$darkMode, language=$language")
+//            }
+//            checkCursor.close()
+
+            Log.d("MainActivity", "数据库初始化成功")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "数据库初始化失败: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::dbHelper.isInitialized) {
+            dbHelper.close()
+        }
+    }
 }
+
+
 
 
 

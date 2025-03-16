@@ -37,6 +37,7 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
 
 //    packagingOptions {
@@ -57,6 +58,10 @@ dependencies {
 //    implementation ("com.zaxxer:HikariCP-android:2.4.0")
 //    // SLF4J 依赖 (HikariCP需要)
 //    implementation ("org.slf4j:slf4j-android:1.7.36")
+    implementation ("androidx.cardview:cardview:1.0.0")
+    implementation ("androidx.viewpager2:viewpager2:1.0.0")
+
+
     implementation ("androidx.work:work-runtime-ktx:2.8.1")
     //外观
     implementation ("androidx.appcompat:appcompat:1.6.1")
@@ -79,7 +84,7 @@ dependencies {
     implementation ("mysql:mysql-connector-java:5.1.49")  // 使用较老但稳定的版本
 //    implementation("org.mariadb.jdbc:mariadb-java-client:3.0.3")
 //    // 如果遇到 minify 问题，添加以下配置
-//    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
     ////
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

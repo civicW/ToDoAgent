@@ -1,5 +1,6 @@
 package com.asap.todoexmple.application
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -20,6 +21,7 @@ class SmsViewModel(application: Application) : AndroidViewModel(application) {
     private val _smsFlow = MutableSharedFlow<SmsMessage>()
     val smsFlow = _smsFlow.asSharedFlow()
     private val smsHandler = SmsHandler.getInstance()
+    @SuppressLint("StaticFieldLeak")
     private val context: Context = application.applicationContext
 
     suspend fun sendSms(sender: String, body: String, timestamp: Long) {
