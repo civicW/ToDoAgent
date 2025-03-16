@@ -156,12 +156,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         // 获取当前登录用户ID
-        //val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        //val userId = sharedPreferences.getString("current_user_id", null)
-        val userId = "1"
+        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val userId = sharedPreferences.getString("current_user_id", null)
+        //val userId = "1"
         // 如果有登录用户，执行同步
         if (userId != null) {
-            Log.d("MainActivity","同步开始执行")
+            Log.d("MainActivity","同步开始执行$userId")
             // 立即同步一次
             LocalDatabaseHelper.startImmediateSync(this, userId)
             Log.d("MainActivity","同步执行完成")

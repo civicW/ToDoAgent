@@ -11,12 +11,13 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     companion object {
         private const val TAG = "LocalDatabaseHelper"
         private const val DATABASE_NAME = "user_settings.db"
-        private const val DATABASE_VERSION = 3  // 将版本号从2改为3
+        private const val DATABASE_VERSION = 4  // 升级版本以支持用户名
 
         // SQL 语句常量
         private const val CREATE_USER_SETTINGS_TABLE = """
             CREATE TABLE IF NOT EXISTS user_settings (
                 user_id TEXT PRIMARY KEY,
+                user_name TEXT NOT NULL,
                 keep_alive_boot INTEGER DEFAULT 0,
                 keep_alive_battery INTEGER DEFAULT 0,
                 keep_alive_hidden INTEGER DEFAULT 0,
@@ -26,22 +27,34 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         """
 
         private const val CREATE_TODO_LIST_TABLE = """
-         CREATE TABLE IF NOT EXISTS ToDoListLocal (
-            list_id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            start_time TEXT,
-            end_time TEXT,
-            location TEXT,
-            todo_content TEXT,
-            is_important INTEGER DEFAULT 0,
-            is_completed INTEGER DEFAULT 0,
-            sync_status INTEGER DEFAULT 0,
-            last_modified TEXT,
-            FOREIGN KEY (user_id) REFERENCES user_settings(user_id) ON DELETE CASCADE
-        )
+            CREATE TABLE IF NOT EXISTS ToDoListLocal (
+                list_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                start_time TEXT,
+                end_time TEXT,
+                location TEXT,
+                todo_content TEXT,
+                is_important INTEGER DEFAULT 0,
+                is_completed INTEGER DEFAULT 0,
+                sync_status INTEGER DEFAULT 0,
+                last_modified TEXT,
+                FOREIGN KEY (user_id) REFERENCES user_settings(user_id) ON DELETE CASCADE
+            )
         """
 
-        // 添加设置定期同步的方法
+        // 静态工具方法
+        fun saveUserInfo(context: Context, userId: String, username: String) {
+            LocalDatabaseHelper(context).use { helper ->
+                helper.saveUserInfo(userId, username)
+            }
+        }
+
+        fun clearAllUserData(context: Context) {
+            LocalDatabaseHelper(context).use { helper ->
+                helper.clearUserData()
+            }
+        }
+
         fun setupPeriodicSync(context: Context, userId: String) {
             try {
                 val syncData = androidx.work.Data.Builder()
@@ -49,7 +62,7 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                     .build()
 
                 val syncRequest = androidx.work.PeriodicWorkRequestBuilder<ToDoSyncWorker>(
-                    10, java.util.concurrent.TimeUnit.MINUTES,
+                    15, java.util.concurrent.TimeUnit.MINUTES,
                     5, java.util.concurrent.TimeUnit.MINUTES
                 )
                     .setInputData(syncData)
@@ -58,7 +71,7 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                             .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
                             .build()
                     )
-                    .addTag("todo_sync")  // 添加标签便于管理
+                    .addTag("todo_sync")
                     .build()
 
                 androidx.work.WorkManager.getInstance(context)
@@ -68,9 +81,21 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                         syncRequest
                     )
                 
-                Log.d(TAG, "已设置待办事项定期同步任务")
+                Log.d(TAG, "已设置定期同步任务")
             } catch (e: Exception) {
                 Log.e(TAG, "设置定期同步失败", e)
+            }
+        }
+
+        fun cancelSync(context: Context, userId: String) {
+            try {
+                androidx.work.WorkManager.getInstance(context).apply {
+                    cancelUniqueWork("todo_sync_$userId")
+                    cancelUniqueWork("todo_immediate_sync_$userId")
+                }
+                Log.d(TAG, "已取消同步任务")
+            } catch (e: Exception) {
+                Log.e(TAG, "取消同步任务失败", e)
             }
         }
 
@@ -103,39 +128,23 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 Log.e(TAG, "触发立即同步失败", e)
             }
         }
-
-        // 取消同步
-        fun cancelSync(context: Context, userId: String) {
-            try {
-                androidx.work.WorkManager.getInstance(context).apply {
-                    cancelUniqueWork("todo_sync_$userId")
-                    cancelUniqueWork("todo_immediate_sync_$userId")
-                }
-                Log.d(TAG, "已取消所有同步任务")
-            } catch (e: Exception) {
-                Log.e(TAG, "取消同步任务失败", e)
-            }
-        }
     }
 
+    // 数据库创建和升级
     override fun onCreate(db: SQLiteDatabase) {
         try {
             db.beginTransaction()
             try {
-                // 创建表
                 db.execSQL(CREATE_USER_SETTINGS_TABLE)
                 db.execSQL(CREATE_TODO_LIST_TABLE)
-                
-                // 创建索引提高查询性能
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_todo_user_id ON ToDoListLocal(user_id)")
-                
                 db.setTransactionSuccessful()
-                Log.d(TAG, "数据库表创建成功")
+                Log.d(TAG, "数据库创建成功")
             } finally {
                 db.endTransaction()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "创建数据库失败", e)
+            Log.e(TAG, "数据库创建失败", e)
         }
     }
 
@@ -143,25 +152,26 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         try {
             db.beginTransaction()
             try {
-                // 检查表是否存在
-                val cursor = db.rawQuery(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='ToDoListLocal'",
-                    null
-                )
-                val tableExists = cursor.count > 0
-                cursor.close()
-
-                if (tableExists) {
-                    // 如果表存在，添加新列
-                    if (oldVersion < 3) {
-                        // 添加 is_important 和 is_completed 列
-                        db.execSQL("ALTER TABLE ToDoListLocal ADD COLUMN is_important INTEGER DEFAULT 0")
-                        db.execSQL("ALTER TABLE ToDoListLocal ADD COLUMN is_completed INTEGER DEFAULT 0")
-                    }
-                } else {
-                    // 如果表不存在，创建新表
-                    db.execSQL(CREATE_TODO_LIST_TABLE)
-                    db.execSQL("CREATE INDEX IF NOT EXISTS idx_todo_user_id ON ToDoListLocal(user_id)")
+                if (oldVersion < 4) {
+                    // 备份旧数据
+                    db.execSQL("CREATE TABLE IF NOT EXISTS user_settings_backup AS SELECT * FROM user_settings")
+                    // 删除旧表
+                    db.execSQL("DROP TABLE IF EXISTS user_settings")
+                    // 创建新表
+                    db.execSQL(CREATE_USER_SETTINGS_TABLE)
+                    // 恢复数据
+                    db.execSQL("""
+                        INSERT INTO user_settings (
+                            user_id, keep_alive_boot, keep_alive_battery, 
+                            keep_alive_hidden, dark_mode, language
+                        )
+                        SELECT 
+                            user_id, keep_alive_boot, keep_alive_battery, 
+                            keep_alive_hidden, dark_mode, language
+                        FROM user_settings_backup
+                    """)
+                    // 删除备份表
+                    db.execSQL("DROP TABLE IF EXISTS user_settings_backup")
                 }
                 
                 db.setTransactionSuccessful()
@@ -170,35 +180,65 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 db.endTransaction()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "数据库升级失败: ${e.message}")
-            // 确保表存在
+            Log.e(TAG, "数据库升级失败", e)
+        }
+    }
+
+    // 用户信息管理方法
+    fun saveUserInfo(userId: String, username: String) {
+        writableDatabase.use { db ->
             try {
-                db.execSQL(CREATE_TODO_LIST_TABLE)
-                db.execSQL("CREATE INDEX IF NOT EXISTS idx_todo_user_id ON ToDoListLocal(user_id)")
-                Log.d(TAG, "已创建新的ToDoListLocal表")
+                val values = android.content.ContentValues().apply {
+                    put("user_id", userId)
+                    put("user_name", username)
+                }
+                
+                db.insertWithOnConflict(
+                    "user_settings",
+                    null,
+                    values,
+                    SQLiteDatabase.CONFLICT_REPLACE
+                )
+                
+                Log.d(TAG, "用户信息保存成功")
             } catch (e: Exception) {
-                Log.e(TAG, "创建新表失败: ${e.message}")
+                Log.e(TAG, "保存用户信息失败", e)
+                throw e
             }
         }
     }
 
-    // 优化的同步方法
-    suspend fun syncToDoListFromCloud(userId: String) = withContext(Dispatchers.IO) {
-        try {
-            // 验证用户ID
-            if (!isValidUser(userId)) {
-                Log.e(TAG, "同步失败：用户ID不存在")
-                return@withContext
-            }
-
-            val dbHelper = DatabaseHelper.Companion
-            val connection = dbHelper.getConnection() ?: return@withContext
-
+    fun clearUserData() {
+        writableDatabase.use { db ->
             try {
-                // 获取最后同步时间
+                db.beginTransaction()
+                try {
+                    db.delete("user_settings", null, null)
+                    db.delete("ToDoListLocal", null, null)
+                    db.setTransactionSuccessful()
+                    Log.d(TAG, "用户数据清除成功")
+                } finally {
+                    db.endTransaction()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "清除用户数据失败", e)
+                throw e
+            }
+        }
+    }
+
+    // 同步相关方法
+    suspend fun syncToDoListFromCloud(userId: String) = withContext(Dispatchers.IO) {
+        if (!isValidUser(userId)) {
+            Log.e(TAG, "同步失败：无效用户ID")
+            return@withContext
+        }
+
+        val dbHelper = DatabaseHelper.Companion
+        dbHelper.getConnection()?.use { connection ->
+            try {
                 val lastSyncTime = getLastSyncTime(userId)
                 
-                // 获取云端数据
                 connection.prepareStatement("""
                     SELECT list_id, user_id, start_time, end_time, location, todo_content 
                     FROM ToDoList 
@@ -206,51 +246,40 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 """).use { stmt ->
                     stmt.setString(1, userId)
                     stmt.setString(2, lastSyncTime)
+                    
                     val rs = stmt.executeQuery()
-
-                    val db = writableDatabase
-                    db.beginTransaction()
-                    try {
-                        // 更新本地数据
-                        while (rs.next()) {
-                            updateLocalTodoItem(db, rs)
+                    writableDatabase.use { db ->
+                        db.beginTransaction()
+                        try {
+                            while (rs.next()) {
+                                updateLocalTodoItem(db, rs)
+                            }
+                            updateLastSyncTime(db, userId)
+                            db.setTransactionSuccessful()
+                        } finally {
+                            db.endTransaction()
                         }
-                        
-                        // 更新同步时间
-                        updateLastSyncTime(db, userId)
-                        
-                        db.setTransactionSuccessful()
-                        Log.d(TAG, "同步成功：用户ID = $userId")
-                    } finally {
-                        db.endTransaction()
                     }
                 }
-            } finally {
-                dbHelper.releaseConnection(connection)
+            } catch (e: Exception) {
+                Log.e(TAG, "同步失败", e)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "同步待办事项失败", e)
         }
     }
 
     // 辅助方法
-    private fun isValidUser(userId: String): Boolean {
-        return readableDatabase.query(
-            "user_settings",
-            arrayOf("user_id"),
-            "user_id = ?",
-            arrayOf(userId),
-            null,
-            null,
-            null
-        ).use { cursor ->
-            cursor.moveToFirst()
+    fun isValidUser(userId: String): Boolean {
+        return readableDatabase.use { db ->
+            db.query(
+                "user_settings",
+                arrayOf("user_id"),
+                "user_id = ?",
+                arrayOf(userId),
+                null, null, null
+            ).use { cursor ->
+                cursor.moveToFirst()
+            }
         }
-    }
-
-    private fun getLastSyncTime(userId: String): String {
-        // 从preferences或数据库获取最后同步时间
-        return "1970-01-01 00:00:00"  // 默认值
     }
 
     private fun updateLocalTodoItem(db: SQLiteDatabase, rs: java.sql.ResultSet) {
@@ -273,53 +302,36 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         )
     }
 
+    private fun getLastSyncTime(userId: String): String = "1970-01-01 00:00:00"
+
     private fun updateLastSyncTime(db: SQLiteDatabase, userId: String) {
-        // 更新最后同步时间
+        // 更新最后同步时间的实现
     }
 }
 
-// 添加同步工作器类
+// 同步工作器
 class ToDoSyncWorker(
-    context: android.content.Context,
+    context: Context,
     params: androidx.work.WorkerParameters
 ) : androidx.work.CoroutineWorker(context, params) {
     
     override suspend fun doWork(): Result {
         try {
             val userId = inputData.getString("user_id") ?: return Result.failure()
-            val dbHelper = LocalDatabaseHelper(applicationContext)
             
-            // 首先验证用户ID是否存在于user_settings表中
-            val db = dbHelper.readableDatabase
-            val cursor = db.query(
-                "user_settings",
-                arrayOf("user_id"),
-                "user_id = ?",
-                arrayOf(userId),
-                null,
-                null,
-                null
-            )
-            
-            if (!cursor.moveToFirst()) {
-                android.util.Log.e("ToDoSyncWorker", "用户ID在本地数据库中不存在")
-                cursor.close()
-                return Result.failure()
+            LocalDatabaseHelper(applicationContext).use { helper ->
+                if (!helper.isValidUser(userId)) {
+                    Log.e("ToDoSyncWorker", "无效用户ID")
+                    return Result.failure()
+                }
+                
+                helper.syncToDoListFromCloud(userId)
             }
-            cursor.close()
             
-            // 确认是合法用户后执行同步
-            dbHelper.syncToDoListFromCloud(userId)
-            
-            android.util.Log.d("ToDoSyncWorker", "待办事项同步成功")
             return Result.success()
         } catch (e: Exception) {
-            android.util.Log.e("ToDoSyncWorker", "同步失败: ${e.message}")
+            Log.e("ToDoSyncWorker", "同步失败", e)
             return Result.retry()
         }
     }
 }
-
-// 在用户登出或需要停止同步时调用
-//  LocalDatabaseHelper.cancelPeriodicSync(context, userId)
-//勿删除，取消同步方法
