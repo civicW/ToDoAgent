@@ -10,24 +10,24 @@
 
 ## 主要目录结构 (Main Directory Structure) 
 
-com.asap.todoexmple/
-├── activity/
-│ └── MainActivity.kt # 主活动界面 / Main Activity
-├── application/
-│ ├── SmsRepository.kt # 短信数据仓库 / SMS Repository
-│ ├── SmsViewModel.kt # 短信视图模型 / SMS ViewModel
-│ └── YourApplication.kt # 应用程序类 / Application Class
-├── service/
-│ ├── NotificationMonitorService.kt # 通知监听服务 / Notification Monitor Service
-│ └── SmsHandler.kt # 短信处理器 / SMS Handler
-├── receiver/
-│ └── KeepAliveUtils.kt # 保活工具类 / Keep Alive Utilities
-└── util/
-├── DatabaseHelper.kt # 数据库助手 / Database Helper
-├── LocalDatabaseHelper.kt # 本地数据库助手 / Local Database Helper
-├── PermissionManager.kt # 权限管理器 / Permission Manager
-├── NotificationServiceManager.kt # 通知服务管理器 / Notification Service Manager
-└── KeepAliveManager.kt # 保活管理器 / Keep Alive Manager
+com.asap.todoexmple
+├── activity
+│ └── MainActivity.kt # 主活动界面  Main Activity
+├── application
+│ ├── SmsRepository.kt # 短信数据仓库  SMS Repository
+│ ├── SmsViewModel.kt # 短信视图模型  SMS ViewModel
+│ └── YourApplication.kt # 应用程序类  Application Class
+├── service
+│ ├── NotificationMonitorService.kt # 通知监听服务  Notification Monitor Service
+│ └── SmsHandler.kt # 短信处理器  SMS Handler
+├── receiver
+│ └── KeepAliveUtils.kt # 保活工具类  Keep Alive Utilities
+└── util
+├── DatabaseHelper.kt # 数据库助手  Database Helper
+├── LocalDatabaseHelper.kt # 本地数据库助手  Local Database Helper
+├── PermissionManager.kt # 权限管理器  Permission Manager
+├── NotificationServiceManager.kt # 通知服务管理器  Notification Service Manager
+└── KeepAliveManager.kt # 保活管理器  Keep Alive Manager
 
 
 ## 功能模块说明 (Function Modules)
