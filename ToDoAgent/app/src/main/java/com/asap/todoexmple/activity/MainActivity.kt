@@ -39,6 +39,9 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModelProvider
 import com.asap.todoexmple.util.LocalDatabaseHelper
+import com.asap.todoexmple.util.DatabaseHelper
+import android.os.PowerManager
+import android.app.AlertDialog
 
 class MainActivity : AppCompatActivity() {
 
@@ -134,6 +137,24 @@ class MainActivity : AppCompatActivity() {
         // 初始化数据库
         initDatabase()
 
+        // 初始化数据库连接
+        DatabaseHelper.initialize(this)
+        
+        // 添加数据库连接状态检查
+        lifecycleScope.launch {
+            try {
+                val connection = DatabaseHelper.getConnection()
+                if (connection != null) {
+                    Log.d("MainActivity", "数据库连接成功")
+                    DatabaseHelper.releaseConnection(connection)
+                } else {
+                    Log.e("MainActivity", "数据库连接失败")
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "检查数据库连接时出错", e)
+            }
+        }
+
         // 获取当前登录用户ID
         //val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
         //val userId = sharedPreferences.getString("current_user_id", null)
@@ -149,6 +170,11 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity","同步定时执行完成")
         }
 
+        // 检查并请求后台自启动权限
+        checkBackgroundStartPermission()
+
+        // 检查并请求后台自启动和后台运行权限
+        checkAndRequestBackgroundPermissions()
     }
 
 
@@ -297,27 +323,21 @@ class MainActivity : AppCompatActivity() {
 
             // 先检查表是否有数据
             val cursor = db.rawQuery("SELECT * FROM user_settings", null)
-            if (cursor.count == 0) {
-                // 如果没有数据，插入测试数据
-                val values = ContentValues().apply {
-                    put("user_id", "1")
-                    put("dark_mode", 0)
-                    put("language", "zh")
+            try {
+                if (cursor.count == 0) {
+                    // 如果没有数据，插入测试数据
+                    val values = ContentValues().apply {
+                        put("user_id", "1")
+                        put("dark_mode", 0)
+                        put("language", "zh")
+                    }
+                    db.insert("user_settings", null, values)
+                    Log.d("MainActivity", "测试数据插入成功")
                 }
-                db.insert("user_settings", null, values)
-                Log.d("MainActivity", "测试数据插入成功")
+            } finally {
+                cursor.close()
+                db.close()  // 关闭数据库连接
             }
-            cursor.close()
-
-//            // 验证数据
-//            val checkCursor = db.rawQuery("SELECT * FROM user_settings", null)
-//            if (checkCursor.moveToFirst()) {
-//                val userId = checkCursor.getString(checkCursor.getColumnIndex("user_id"))
-//                val darkMode = checkCursor.getInt(checkCursor.getColumnIndex("dark_mode"))
-//                val language = checkCursor.getString(checkCursor.getColumnIndex("language"))
-//                Log.d("MainActivity", "数据验证: user_id=$userId, dark_mode=$darkMode, language=$language")
-//            }
-//            checkCursor.close()
 
             Log.d("MainActivity", "数据库初始化成功")
         } catch (e: Exception) {
@@ -330,6 +350,65 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         if (::dbHelper.isInitialized) {
             dbHelper.close()
+        }
+    }
+
+    private fun checkBackgroundStartPermission() {
+        if (!KeepAliveUtils.isBackgroundStartEnabled(this)) {
+            // 显示对话框提示用户开启后台自启动
+            AlertDialog.Builder(this)
+                .setTitle("需要权限")
+                .setMessage("请允许应用在后台运行，以确保短信正常处理")
+                .setPositiveButton("去设置") { _, _ ->
+                    try {
+                        // 跳转到应用设置页面
+                        val intent = Intent().apply {
+                            action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                            data = Uri.fromParts("package", packageName, null)
+                        }
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "打开设置页面失败", e)
+                        Toast.makeText(this, "请手动开启应用的后台自启动权限", Toast.LENGTH_LONG).show()
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
+    }
+
+    private fun requestBatteryOptimizationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    val intent = Intent().apply {
+                        action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "请求电池优化白名单失败", e)
+                }
+            }
+        }
+    }
+
+    private fun checkAndRequestBackgroundPermissions() {
+        if (!KeepAliveUtils.isBackgroundStartEnabled(this)) {
+            AlertDialog.Builder(this)
+                .setTitle("需要权限")
+                .setMessage("为了确保应用正常运行，请允许应用自启动和后台运行权限")
+                .setPositiveButton("去设置") { _, _ ->
+                    // 跳转到自启动设置页面
+                    KeepAliveUtils.jumpToAutoStartSetting(this)
+                    // 跳转到电池优化设置页面
+                    KeepAliveUtils.jumpToBatteryOptimizationSetting(this)
+                }
+                .setNegativeButton("取消") { _, _ ->
+                    Toast.makeText(this, "未授予权限可能会影响应用正常运行", Toast.LENGTH_LONG).show()
+                }
+                .show()
         }
     }
 }

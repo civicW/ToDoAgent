@@ -9,6 +9,7 @@ import com.asap.todoexmple.service.SmsHandler
 import com.asap.todoexmple.receiver.KeepAliveUtils
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import android.util.Log
 
 data class SmsMessage(
     val sender: String,
@@ -26,16 +27,20 @@ class SmsViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun sendSms(sender: String, body: String, timestamp: Long) {
         try {
-            // 检查是否启用了后台自启动
-            if (KeepAliveUtils.isBackgroundStartEnabled(context)) {
-                // 发送到 Flow
-                _smsFlow.emit(SmsMessage(sender, body, timestamp))
-                
-                // 处理短信
-                smsHandler.handleSmsMessage(sender, body, timestamp)
+            Log.d("SmsViewModel", "开始处理短信: sender=$sender")
+            
+            // 移除后台自启动检查，直接处理短信
+            _smsFlow.emit(SmsMessage(sender, body, timestamp))
+            smsHandler.handleSmsMessage(sender, body, timestamp)
+            
+            // 如果后台自启动未启用，仅记录警告日志
+            if (!KeepAliveUtils.isBackgroundStartEnabled(context)) {
+                Log.w("SmsViewModel", "警告：后台自启动未启用，可能影响应用在后台的运行")
             }
+            
+            Log.d("SmsViewModel", "短信处理完成")
         } catch (e: Exception) {
-            android.util.Log.e("SmsViewModel", "处理短信失败", e)
+            Log.e("SmsViewModel", "处理短信失败: ${e.message}", e)
             throw e
         }
     }
