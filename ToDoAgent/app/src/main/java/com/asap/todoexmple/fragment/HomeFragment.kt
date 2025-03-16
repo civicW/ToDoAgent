@@ -1,6 +1,7 @@
 package com.asap.todoexmple.fragment
 
 import Task
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -60,7 +61,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupTaskList() {
-        taskAdapter = TaskAdapter()
+        taskAdapter = TaskAdapter(
+            onImportantClick = { task, isImportant ->
+                updateTaskImportance(task.listId, isImportant)
+            },
+            onCompletedClick = { task, isCompleted ->
+                updateTaskCompletion(task.listId, isCompleted)
+            }
+        )
         taskList?.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = taskAdapter
@@ -235,6 +243,95 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun updateTaskImportance(taskId: String, isImportant: Boolean) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                dbHelper.writableDatabase.use { db ->
+                    val values = android.content.ContentValues().apply {
+                        put("is_important", if (isImportant) 1 else 0)
+                        put("last_modified", System.currentTimeMillis().toString())
+                        put("sync_status", 0) // 标记需要同步
+                    }
+                    
+                    db.update(
+                        "ToDoListLocal",
+                        values,
+                        "list_id = ?",
+                        arrayOf(taskId)
+                    )
+                }
+                
+                // 刷新当前显示的任务列表
+                when (getCurrentSelectedButton()) {
+                    R.id.btnAll -> loadAllTasks()
+                    R.id.btnToday -> loadTodayTasks()
+                    R.id.btnImportant -> loadImportantTasks()
+                    R.id.btnCompleted -> loadCompletedTasks()
+                }
+                
+                // 触发立即同步
+                val userId = getUserId() // 需要实现获取用户ID的方法
+                if (userId != null) {
+                    LocalDatabaseHelper.startImmediateSync(requireContext(), userId)
+                }
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "更新任务重要性失败", e)
+            }
+        }
+    }
+
+    private fun updateTaskCompletion(taskId: String, isCompleted: Boolean) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                dbHelper.writableDatabase.use { db ->
+                    val values = android.content.ContentValues().apply {
+                        put("is_completed", if (isCompleted) 1 else 0)
+                        put("last_modified", System.currentTimeMillis().toString())
+                        put("sync_status", 0) // 标记需要同步
+                    }
+                    
+                    db.update(
+                        "ToDoListLocal",
+                        values,
+                        "list_id = ?",
+                        arrayOf(taskId)
+                    )
+                }
+                
+                // 刷新当前显示的任务列表
+                when (getCurrentSelectedButton()) {
+                    R.id.btnAll -> loadAllTasks()
+                    R.id.btnToday -> loadTodayTasks()
+                    R.id.btnImportant -> loadImportantTasks()
+                    R.id.btnCompleted -> loadCompletedTasks()
+                }
+                
+                // 触发立即同步
+                val userId = getUserId()
+                if (userId != null) {
+                    LocalDatabaseHelper.startImmediateSync(requireContext(), userId)
+                }
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "更新任务完成状态失败", e)
+            }
+        }
+    }
+
+    private fun getCurrentSelectedButton(): Int {
+        return when {
+            btnAll?.backgroundTintList?.defaultColor == requireContext().getColor(R.color.blue_500) -> R.id.btnAll
+            btnToday?.backgroundTintList?.defaultColor == requireContext().getColor(R.color.blue_500) -> R.id.btnToday
+            btnImportant?.backgroundTintList?.defaultColor == requireContext().getColor(R.color.blue_500) -> R.id.btnImportant
+            btnCompleted?.backgroundTintList?.defaultColor == requireContext().getColor(R.color.blue_500) -> R.id.btnCompleted
+            else -> R.id.btnAll
+        }
+    }
+
+    private fun getUserId(): String? {
+        return context?.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+            ?.getString("current_user_id", null)
+    }
+
     private fun cursorToTask(cursor: android.database.Cursor): Task {
         return Task(
             listId = cursor.getString(cursor.getColumnIndexOrThrow("list_id")),
@@ -243,6 +340,8 @@ class HomeFragment : Fragment() {
             endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time")),
             location = cursor.getString(cursor.getColumnIndexOrThrow("location")),
             content = cursor.getString(cursor.getColumnIndexOrThrow("todo_content")),
+            isImportant = cursor.getInt(cursor.getColumnIndexOrThrow("is_important")) == 1,
+            isCompleted = cursor.getInt(cursor.getColumnIndexOrThrow("is_completed")) == 1,
             syncStatus = cursor.getInt(cursor.getColumnIndexOrThrow("sync_status")),
             lastModified = cursor.getString(cursor.getColumnIndexOrThrow("last_modified"))
         )

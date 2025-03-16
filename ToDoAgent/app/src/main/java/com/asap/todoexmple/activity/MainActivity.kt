@@ -42,12 +42,16 @@ import com.asap.todoexmple.util.LocalDatabaseHelper
 import com.asap.todoexmple.util.DatabaseHelper
 import android.os.PowerManager
 import android.app.AlertDialog
+import com.asap.todoexmple.fragment.LoginFragment
+import com.asap.todoexmple.util.SessionManager
+
+//import com.google.android.gms.cast.framework.SessionManager
+
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var smsViewModel: SmsViewModel
-    //private val smsRepository = SmsRepository()
-    private val smsHandler = SmsHandler.getInstance()
+    private lateinit var smsHandler: SmsHandler
     private val PERMISSION_REQUEST_CODE = 123
     //private val NOTIFICATION_PERMISSION_REQUEST_CODE = 456
     private lateinit var dbHelper: LocalDatabaseHelper
@@ -66,8 +70,16 @@ class MainActivity : AppCompatActivity() {
    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //enableEdgeToEdge()
 
+        // 检查登录状态
+        if (!SessionManager.Session.isLoggedIn(this)) {
+            // 未登录，跳转到登录页面
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish() // 结束当前 Activity
+            return
+        }
+
+        // 已登录，继续原有逻辑
         setContentView(R.layout.activity_main)
 
         val navHostFragment = supportFragmentManager
@@ -175,6 +187,9 @@ class MainActivity : AppCompatActivity() {
 
         // 检查并请求后台自启动和后台运行权限
         checkAndRequestBackgroundPermissions()
+
+        // 在这里初始化 smsHandler
+        smsHandler = SmsHandler.getInstance(this)
     }
 
 

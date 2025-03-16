@@ -61,30 +61,29 @@ class NotificationMonitorService : NotificationListenerService() {
         if (notificationPkg == "com.tencent.mm") {
             Log.d("NotificationService", "收到通知：$notificationTitle - $notificationText")
             if (notificationTitle == "微软 AI 黑客松 ASAP队" ) {
-            // 在协程中保存通知
-
-            serviceScope.launch {
-                try {
-                    val success = notificationRepository.saveNotification(
-                        notificationPkg,
-                        notificationTitle + notificationText,
-                        messageId = generateTimestampWithRandom()
-                    )
-                    if (success) {
-                        Log.d("NotificationService", "通知保存成功")
-                    } else {
-                        Log.e("NotificationService", "通知保存失败")
-                    }
-                } catch (e: Exception) {
-                    Log.e("NotificationService", "保存通知时出错", e)
-                }
-            }
-        }
-            if (notificationTitle == "备忘录" ) {
-                // 在协程中保存通知
                 serviceScope.launch {
                     try {
                         val success = notificationRepository.saveNotification(
+                            this@NotificationMonitorService,  // 使用 this@NotificationMonitorService 作为 context
+                            notificationPkg,
+                            notificationTitle + notificationText,
+                            messageId = generateTimestampWithRandom()
+                        )
+                        if (success) {
+                            Log.d("NotificationService", "通知保存成功")
+                        } else {
+                            Log.e("NotificationService", "通知保存失败")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NotificationService", "保存通知时出错", e)
+                    }
+                }
+            }
+            if (notificationTitle == "备忘录" ) {
+                serviceScope.launch {
+                    try {
+                        val success = notificationRepository.saveNotification(
+                            this@NotificationMonitorService,  // 使用 this@NotificationMonitorService 作为 context
                             notificationPkg,
                             notificationTitle + notificationText,
                             messageId = generateTimestampWithRandom()
@@ -104,11 +103,10 @@ class NotificationMonitorService : NotificationListenerService() {
         if (notificationPkg == "com.ss.android.lark") {
             Log.d("NotificationService", "收到通知：$notificationTitle - $notificationText")
             if (notificationTitle == "ASAP Azure ToDoAgent") {
-                // 在协程中保存通知
-
                 serviceScope.launch {
                     try {
                         val success = notificationRepository.saveNotification(
+                            this@NotificationMonitorService,  // 使用 this@NotificationMonitorService 作为 context
                             notificationPkg,
                             notificationTitle + notificationText,
                             messageId = generateTimestampWithRandom()

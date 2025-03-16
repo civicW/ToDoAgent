@@ -25,4 +25,14 @@
     <style name="TextAppearance.ToDoAgent.Headline" parent="TextAppearance.AppCompat.Headline">
         <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
+
+    <style name="CustomShapeAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <style name="CustomRoundedShape">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
 </resources> 

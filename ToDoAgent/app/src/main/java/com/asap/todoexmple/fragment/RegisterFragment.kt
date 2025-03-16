@@ -1,6 +1,7 @@
 package com.asap.todoexmple.fragment
 
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -12,10 +13,15 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.asap.todoexmple.activity.MainActivity
 import com.asap.todoexmple.databinding.FragmentRegisterBinding
 import com.asap.todoexmple.util.DatabaseHelper
+import com.asap.todoexmple.util.LocalDatabaseHelper
+import com.asap.todoexmple.util.SessionManager
 import com.asap.todoexmple.util.UserManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.regex.Pattern
 import com.asap.todoexmple.util.PasswordUtils
 
@@ -115,14 +121,10 @@ class RegisterFragment : Fragment() {
                 try {
                     val userId = DatabaseHelper.registerUser(username, email, hashedPassword, salt)
                     if (userId != null) {
-                        // 保存用户信息到本地
-                        context?.let { ctx ->
-                            UserManager.saveUserInfo(ctx, userId, username, email)
-                        }
-                        
-                        // 显示成功消息并关闭页面
                         showSuccess("注册成功")
-                        activity?.finish()
+                        // 注册成功后自动登录
+                        handleRegistrationSuccess(userId, username, email)
+                        
                     } else {
                         showError("注册失败：用户创建失败")
                     }
@@ -136,6 +138,43 @@ class RegisterFragment : Fragment() {
             } finally {
                 setLoadingState(false)
             }
+        }
+    }
+
+    private suspend fun handleRegistrationSuccess(userId: String, username: String, email: String) {
+        try {
+            // 1. 保存会话信息
+            withContext(Dispatchers.Main) {
+                SessionManager.Auth.loginAfterRegister(requireContext(), userId, username)
+            }
+
+            // 2. 保存到本地数据库
+            withContext(Dispatchers.IO) {
+                LocalDatabaseHelper.saveUserInfo(requireContext(), userId, username)
+                LocalDatabaseHelper.setupPeriodicSync(requireContext(), userId)
+            }
+
+            // 3. 保存到UserManager
+            withContext(Dispatchers.Main) {
+                UserManager.saveUserInfo(requireContext(), userId, username, email)
+            }
+
+            // 4. 启动MainActivity
+            withContext(Dispatchers.Main) {
+                val intent = Intent(requireContext(), MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                startActivity(intent)
+                activity?.finish()
+            }
+
+            // 5. 显示成功消息
+            withContext(Dispatchers.Main) {
+                Toast.makeText(requireContext(), "注册成功并已登录", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Log.e("RegisterFragment", "注册后登录失败", e)
+            throw Exception("注册后初始化失败：${e.message}")
         }
     }
 

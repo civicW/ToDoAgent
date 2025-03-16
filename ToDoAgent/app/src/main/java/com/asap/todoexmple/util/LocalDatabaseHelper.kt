@@ -62,8 +62,8 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                     .build()
 
                 val syncRequest = androidx.work.PeriodicWorkRequestBuilder<ToDoSyncWorker>(
-                    15, java.util.concurrent.TimeUnit.MINUTES,
-                    5, java.util.concurrent.TimeUnit.MINUTES
+                    1, java.util.concurrent.TimeUnit.MINUTES,
+                    30, java.util.concurrent.TimeUnit.SECONDS
                 )
                     .setInputData(syncData)
                     .setConstraints(
@@ -128,6 +128,16 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 Log.e(TAG, "触发立即同步失败", e)
             }
         }
+
+        // 添加初始化方法
+        fun initializeDatabaseIfNeeded(context: Context) {
+            try {
+                LocalDatabaseHelper(context).initializeDatabase()
+                Log.d(TAG, "数据库初始化检查完成")
+            } catch (e: Exception) {
+                Log.e(TAG, "数据库初始化失败", e)
+            }
+        }
     }
 
     // 数据库创建和升级
@@ -135,9 +145,20 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
         try {
             db.beginTransaction()
             try {
+                // 确保先创建用户设置表
                 db.execSQL(CREATE_USER_SETTINGS_TABLE)
+                Log.d(TAG, "用户设置表创建成功")
+                
+                // 然后创建待办事项表
                 db.execSQL(CREATE_TODO_LIST_TABLE)
+                Log.d(TAG, "待办事项表创建成功")
+                
+                // 创建索引
                 db.execSQL("CREATE INDEX IF NOT EXISTS idx_todo_user_id ON ToDoListLocal(user_id)")
+                
+                // 插入默认数据（如果需要的话）
+                insertDefaultSettings(db)
+                
                 db.setTransactionSuccessful()
                 Log.d(TAG, "数据库创建成功")
             } finally {
@@ -145,6 +166,50 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
             }
         } catch (e: Exception) {
             Log.e(TAG, "数据库创建失败", e)
+            throw e  // 抛出异常以便知道创建失败
+        }
+    }
+
+    private fun insertDefaultSettings(db: SQLiteDatabase) {
+        // 插入一个默认用户设置记录
+        val values = android.content.ContentValues().apply {
+            put("user_id", "default_user")
+            put("user_name", "默认用户")
+            put("keep_alive_boot", 0)
+            put("keep_alive_battery", 0)
+            put("keep_alive_hidden", 0)
+            put("dark_mode", 0)
+            put("language", "zh")
+        }
+        
+        db.insertWithOnConflict(
+            "user_settings",
+            null,
+            values,
+            SQLiteDatabase.CONFLICT_IGNORE
+        )
+    }
+
+    // 添加一个初始化检查方法
+    fun initializeDatabase() {
+        try {
+            writableDatabase.use { db ->
+                // 检查表是否存在
+                val cursor = db.rawQuery(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='ToDoListLocal'",
+                    null
+                )
+                
+                cursor.use { 
+                    if (!cursor.moveToFirst()) {
+                        // 如果表不存在，重新创建
+                        onCreate(db)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "数据库初始化检查失败", e)
+            throw e
         }
     }
 

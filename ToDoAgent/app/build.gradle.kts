@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.firebase.components)
+    implementation(libs.play.services.cast.framework)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

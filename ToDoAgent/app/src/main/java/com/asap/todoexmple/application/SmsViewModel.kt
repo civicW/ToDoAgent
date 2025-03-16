@@ -21,7 +21,7 @@ data class SmsMessage(
 class SmsViewModel(application: Application) : AndroidViewModel(application) {
     private val _smsFlow = MutableSharedFlow<SmsMessage>()
     val smsFlow = _smsFlow.asSharedFlow()
-    private val smsHandler = SmsHandler.getInstance()
+    private val smsHandler = SmsHandler.getInstance(application.applicationContext)
     @SuppressLint("StaticFieldLeak")
     private val context: Context = application.applicationContext
 

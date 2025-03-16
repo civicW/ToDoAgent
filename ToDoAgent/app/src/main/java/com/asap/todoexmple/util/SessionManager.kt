@@ -111,19 +111,11 @@ object SessionManager {
         }
 
         private fun cleanupUserData(context: Context, userId: String?) {
-            // 清除本地数据库中的用户数据
-            LocalDatabaseHelper(context).use { helper ->
-                try {
-                    helper.clearUserData()
-                } catch (e: Exception) {
-                    Log.e(TAG, "清除本地数据失败: ${e.message}")
-                }
-            }
-            
-            // 取消同步任务
+            // 只取消同步任务，不删除数据
             userId?.let { 
                 try {
                     LocalDatabaseHelper.cancelSync(context, it)
+                    Log.d(TAG, "已取消用户 $it 的同步任务")
                 } catch (e: Exception) {
                     Log.e(TAG, "取消同步任务失败: ${e.message}")
                 }

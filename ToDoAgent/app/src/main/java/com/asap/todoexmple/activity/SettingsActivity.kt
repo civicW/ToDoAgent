@@ -17,6 +17,7 @@ import android.widget.Toast
 import android.widget.TextView
 import android.widget.ImageView
 import com.asap.todoexmple.util.UserManager
+import com.asap.todoexmple.util.SessionManager
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -52,7 +53,38 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.layoutLogout).setOnClickListener {
-            // 处理退出登录点击
+            // 退出登录点击
+            try {
+                // 调用SessionManager的登出方法
+                SessionManager.Auth.logout(this)
+                
+                // 清除UserManager中的用户信息（使用正确的方法名）
+                UserManager.clearUserInfo(this)
+                
+                // 重置界面状态
+                setupUserInfoSection()
+                
+                // 显示退出成功提示
+                Toast.makeText(this, "退出登录成功", Toast.LENGTH_SHORT).show()
+                
+                // 关闭保活相关功能
+                KeepAliveUtils.setBootStartEnabled(this, false)
+                KeepAliveUtils.setBackgroundStartEnabled(this, false)
+                KeepAliveUtils.setHiddenFromRecents(this, false)
+                
+                // 重置所有开关状态
+                findViewById<SwitchCompat>(R.id.switchBootStart).isChecked = false
+                findViewById<SwitchCompat>(R.id.switchBatteryOptimization).isChecked = false
+                findViewById<SwitchCompat>(R.id.switchHideRecents).isChecked = false
+                
+                // 清除所有Activity栈，并跳转到登录界面
+                val intent = Intent(this, LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            } catch (e: Exception) {
+                Toast.makeText(this, "退出登录失败：${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // 保活措施相关
@@ -116,6 +148,10 @@ class SettingsActivity : AppCompatActivity() {
         val imgAvatar = findViewById<ImageView>(R.id.imgAvatar)
 
         val isLoggedIn = UserManager.isLoggedIn(this)
+        
+        // 根据登录状态显示或隐藏退出登录按钮
+        findViewById<View>(R.id.layoutLogout).visibility = 
+            if (isLoggedIn) View.VISIBLE else View.GONE
         
         if (isLoggedIn) {
             txtLoginStatus.text = UserManager.getUserName(this)

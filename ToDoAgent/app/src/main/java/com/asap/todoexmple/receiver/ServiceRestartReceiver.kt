@@ -18,8 +18,8 @@ class ServiceRestartReceiver : BroadcastReceiver() {
                     NotificationMonitorService::class.java
                 )
                 
-                // 初始化短信处理服务
-                SmsHandler.getInstance()
+                // 初始化短信处理服务，传入 applicationContext
+                SmsHandler.getInstance(context.applicationContext)
             }
         }
     }

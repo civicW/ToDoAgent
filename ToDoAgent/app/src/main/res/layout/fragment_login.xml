@@ -10,7 +10,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="用户名/邮箱/ID">
+        android:hint="用户名/邮箱/ID"
+        app:boxStrokeColor="@color/blue_500"
+        app:shapeAppearance="@style/CustomRoundedShape"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etAccount"
@@ -25,7 +28,11 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:hint="密码"
-        app:passwordToggleEnabled="true">
+        app:boxStrokeColor="@color/blue_500"
+        app:shapeAppearance="@style/CustomRoundedShape"
+        app:passwordToggleEnabled="true"
+        app:passwordToggleTint="@color/blue_500"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etPassword"
@@ -41,7 +48,9 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:padding="12dp"
-        android:text="登录" />
+        android:text="登录"
+        app:cornerRadius="16dp"
+        android:backgroundTint="@color/blue_500" />
 
     <TextView
         android:id="@+id/tvForgotPassword"

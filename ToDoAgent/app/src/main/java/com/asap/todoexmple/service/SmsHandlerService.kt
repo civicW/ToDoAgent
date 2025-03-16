@@ -1,18 +1,16 @@
 package com.asap.todoexmple.service
 
+import android.content.Context
 import android.util.Log
 import com.asap.todoexmple.application.SmsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-
 import java.util.Date
 import java.util.Locale
 
-
-
-class SmsHandler {
+class SmsHandler(private val context: Context) {
     private val smsRepository = SmsRepository()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -23,11 +21,12 @@ class SmsHandler {
             val date = Date(timestamp)
             val formattedDate = dateFormat.format(date)
             val messageId = generateTimestampWithRandom()
+            
             // 保存到数据库
             coroutineScope.launch {
                 Log.d("SmsHandler", "开始保存数据 - 发送人: $sender, 内容: $body, 收信时: $formattedDate")
                 try {
-                    val success = smsRepository.saveSmsData(sender, body, messageId)
+                    val success = smsRepository.saveSmsData(context, sender, body, messageId)
                     Log.d("SmsHandler", if (success) "数据保存成功" else "数据保存失败")
                 } catch (e: Exception) {
                     Log.e("SmsHandler", "保存数据时出错", e)
@@ -42,9 +41,9 @@ class SmsHandler {
         @Volatile
         private var instance: SmsHandler? = null
 
-        fun getInstance(): SmsHandler {
+        fun getInstance(context: Context): SmsHandler {
             return instance ?: synchronized(this) {
-                instance ?: SmsHandler().also { instance = it }
+                instance ?: SmsHandler(context.applicationContext).also { instance = it }
             }
         }
     }
