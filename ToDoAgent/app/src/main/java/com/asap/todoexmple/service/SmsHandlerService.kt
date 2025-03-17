@@ -1,5 +1,6 @@
 package com.asap.todoexmple.service
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import com.asap.todoexmple.application.SmsRepository
@@ -21,7 +22,7 @@ class SmsHandler(private val context: Context) {
             val date = Date(timestamp)
             val formattedDate = dateFormat.format(date)
             val messageId = generateTimestampWithRandom()
-            
+
             // 保存到数据库
             coroutineScope.launch {
                 Log.d("SmsHandler", "开始保存数据 - 发送人: $sender, 内容: $body, 收信时: $formattedDate")
@@ -38,6 +39,7 @@ class SmsHandler(private val context: Context) {
     }
 
     companion object {
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         private var instance: SmsHandler? = null
 

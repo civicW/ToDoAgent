@@ -3,11 +3,13 @@ package com.asap.todoexmple.service
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 import java.time.LocalDateTime
@@ -47,81 +49,52 @@ fun generateTimestampWithRandom(): Int {
 class NotificationMonitorService : NotificationListenerService() {
     private val notificationRepository = NotificationRepository()
     private val serviceScope = CoroutineScope(Dispatchers.IO)
+
+    private fun handleNotification(notificationPkg: String, notificationTitle: String?, notificationText: String?) {
+        serviceScope.launch {
+            try {
+                val messageId = generateTimestampWithRandom()
+                Log.d("NotificationService", "尝试保存通知，初始message_id: $messageId")
+                
+                val success = notificationRepository.saveNotification(
+                    this@NotificationMonitorService,
+                    notificationPkg,  // app_name
+                    notificationTitle, // sender
+                    notificationText, // content
+                    messageId // message_id
+                )
+                
+                if (success) {
+                    Log.d("NotificationService", "通知保存成功")
+                } else {
+                    Log.e("NotificationService", "通知保存失败")
+                }
+            } catch (e: Exception) {
+                Log.e("NotificationService", "保存通知时出错: ${e.message}", e)
+            }
+        }
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
         val notification = sbn.notification
         val extras = notification.extras
-        // 获取包名
         val notificationPkg = sbn.packageName
-        // 获取通知标题（需处理API兼容性）
         val notificationTitle = extras.getString(Notification.EXTRA_TITLE)
-        // 获取通知内容
         val notificationText = extras.getString(Notification.EXTRA_TEXT)
-        // 只处理华为健康的通知
+
         if (notificationPkg == "com.tencent.mm") {
             Log.d("NotificationService", "收到通知：$notificationTitle - $notificationText")
-            if (notificationTitle == "微软 AI 黑客松 ASAP队" ) {
-                serviceScope.launch {
-                    try {
-                        val success = notificationRepository.saveNotification(
-                            this@NotificationMonitorService,  // 使用 this@NotificationMonitorService 作为 context
-                            notificationPkg,
-                            notificationTitle + notificationText,
-                            messageId = generateTimestampWithRandom()
-                        )
-                        if (success) {
-                            Log.d("NotificationService", "通知保存成功")
-                        } else {
-                            Log.e("NotificationService", "通知保存失败")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("NotificationService", "保存通知时出错", e)
-                    }
-                }
+            if (notificationTitle == "微软 AI 黑客松 ASAP队" || notificationTitle == "备忘录") {
+                handleNotification(notificationPkg, notificationTitle, notificationText)
             }
-            if (notificationTitle == "备忘录" ) {
-                serviceScope.launch {
-                    try {
-                        val success = notificationRepository.saveNotification(
-                            this@NotificationMonitorService,  // 使用 this@NotificationMonitorService 作为 context
-                            notificationPkg,
-                            notificationTitle + notificationText,
-                            messageId = generateTimestampWithRandom()
-                        )
-                        if (success) {
-                            Log.d("NotificationService", "通知保存成功")
-                        } else {
-                            Log.e("NotificationService", "通知保存失败")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("NotificationService", "保存通知时出错", e)
-                    }
-                }
-            }
-
-        }
-        if (notificationPkg == "com.ss.android.lark") {
+        } else if (notificationPkg == "com.ss.android.lark") {
             Log.d("NotificationService", "收到通知：$notificationTitle - $notificationText")
             if (notificationTitle == "ASAP Azure ToDoAgent") {
-                serviceScope.launch {
-                    try {
-                        val success = notificationRepository.saveNotification(
-                            this@NotificationMonitorService,  // 使用 this@NotificationMonitorService 作为 context
-                            notificationPkg,
-                            notificationTitle + notificationText,
-                            messageId = generateTimestampWithRandom()
-                        )
-                        if (success) {
-                            Log.d("NotificationService", "通知保存成功")
-                        } else {
-                            Log.e("NotificationService", "通知保存失败")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("NotificationService", "保存通知时出错", e)
-                    }
-                }
+                handleNotification(notificationPkg, notificationTitle, notificationText)
             }
         }
+
         Log.d("收到的消息内容包名：", notificationPkg)
         //LogUtils.d("LogUtils:Notification posted $notificationTitle & $notificationText")
         Log.d(
@@ -154,6 +127,30 @@ class NotificationMonitorService : NotificationListenerService() {
             "NotificationInfo",
             " Notification removed $notificationTitle & $notificationText"
         )
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        Log.d("NotificationService", "服务已创建")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // 清理资源
+        serviceScope.cancel()
+        Log.d("NotificationService", "服务已销毁")
+    }
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        Log.d("NotificationService", "监听器已连接")
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        Log.d("NotificationService", "监听器已断开连接")
+        // 尝试重新连接
+        requestRebind(ComponentName(this, NotificationMonitorService::class.java))
     }
 }
 

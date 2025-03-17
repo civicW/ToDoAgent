@@ -21,9 +21,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.asap.todoexmple.R
-import com.asap.todoexmple.application.SmsRepository
 import com.asap.todoexmple.application.SmsViewModel
-import com.asap.todoexmple.application.YourApplication
 import com.asap.todoexmple.service.NotificationMonitorService
 import kotlinx.coroutines.launch
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -42,7 +40,7 @@ import com.asap.todoexmple.util.LocalDatabaseHelper
 import com.asap.todoexmple.util.DatabaseHelper
 import android.os.PowerManager
 import android.app.AlertDialog
-import com.asap.todoexmple.fragment.LoginFragment
+import com.asap.todoexmple.service.generateTimestampWithRandom
 import com.asap.todoexmple.util.SessionManager
 
 //import com.google.android.gms.cast.framework.SessionManager
@@ -200,11 +198,20 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 smsViewModel.smsFlow.collect { smsMessage ->
-                    smsHandler.handleSmsMessage(
-                        smsMessage.sender,
-                        smsMessage.body,
-                        smsMessage.timestamp
-                    )
+                    // 使用 generateTimestampWithRandom() 生成消息ID
+                    val messageId = generateTimestampWithRandom()
+                    // 从 SessionManager 获取用户ID
+                    val userId = SessionManager.Session.getUserId(this@MainActivity)
+                    if (userId != null) {
+                        smsHandler.handleSmsMessage(
+                            smsMessage.sender,
+                            smsMessage.body,
+                            smsMessage.timestamp
+
+                        )
+                    } else {
+                        Log.e("MainActivity", "用户未登录，无法处理消息")
+                    }
                 }
             }
         }
@@ -212,13 +219,18 @@ class MainActivity : AppCompatActivity() {
 
     //////通知获取的函数小伙伴们/////
     private fun initNotificationService() {
-        // 修改通知监听服务的启动逻辑
         if (!isNotificationServiceEnabled()) {
-            // 如果服务未启用，引导用户去设置
-            Toast.makeText(this, "请授权通知访问权限", Toast.LENGTH_LONG).show()
-            startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+            // 显示对话框提示用户开启权限
+            AlertDialog.Builder(this)
+                .setTitle("需要通知访问权限")
+                .setMessage("请开启通知访问权限以确保应用正常工作")
+                .setPositiveButton("去设置") { _, _ ->
+                    startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                }
+                .setNegativeButton("取消", null)
+                .show()
         } else {
-            // 服务已启用，确保服务正在运行
+            // 重启通知监听服务
             toggleNotificationListenerService()
         }
     }
