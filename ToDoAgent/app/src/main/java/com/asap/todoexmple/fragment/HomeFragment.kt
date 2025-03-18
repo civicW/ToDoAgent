@@ -1,13 +1,18 @@
 package com.asap.todoexmple.fragment
 
 import Task
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -29,6 +34,8 @@ class HomeFragment : Fragment() {
     private var taskList: RecyclerView? = null
     private var taskAdapter: TaskAdapter? = null
     private lateinit var dbHelper: LocalDatabaseHelper
+
+    private var pendingTaskId: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,6 +74,9 @@ class HomeFragment : Fragment() {
             },
             onCompletedClick = { task, isCompleted ->
                 updateTaskCompletion(task.listId, isCompleted)
+            },
+            onCalendarClick = { task ->
+                checkAndRequestCalendarPermissions(task.listId)
             }
         )
         taskList?.apply {
@@ -345,5 +355,78 @@ class HomeFragment : Fragment() {
             syncStatus = cursor.getInt(cursor.getColumnIndexOrThrow("sync_status")),
             lastModified = cursor.getString(cursor.getColumnIndexOrThrow("last_modified"))
         )
+    }
+
+    // 添加日历权限检查和请求方法
+    private fun checkAndRequestCalendarPermissions(taskId: String) {
+        val readPermission = ContextCompat.checkSelfPermission(
+            requireContext(), 
+            Manifest.permission.READ_CALENDAR
+        )
+        val writePermission = ContextCompat.checkSelfPermission(
+            requireContext(), 
+            Manifest.permission.WRITE_CALENDAR
+        )
+
+        val permissionsToRequest = mutableListOf<String>()
+        
+        if (readPermission != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.READ_CALENDAR)
+        }
+        if (writePermission != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.WRITE_CALENDAR)
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            requestPermissions(
+                permissionsToRequest.toTypedArray(),
+                CALENDAR_PERMISSION_REQUEST_CODE
+            )
+            // 保存当前任务ID，以便在权限授予后使用
+            pendingTaskId = taskId
+        } else {
+            // 已有权限，直接创建日历提醒
+            createCalendarReminder(taskId)
+        }
+    }
+
+    companion object {
+        private const val CALENDAR_PERMISSION_REQUEST_CODE = 1001
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        when (requestCode) {
+            CALENDAR_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && 
+                    grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    // 用户授予了所有权限
+                    pendingTaskId?.let { taskId ->
+                        createCalendarReminder(taskId)
+                    }
+                } else {
+                    // 用户拒绝了权限
+                    Toast.makeText(
+                        requireContext(),
+                        "需要日历权限才能创建提醒",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                pendingTaskId = null
+            }
+            else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+    }
+
+    private fun createCalendarReminder(taskId: String) {
+        dbHelper.createCalendarReminder(requireContext(), taskId)
+        Toast.makeText(
+            requireContext(),
+            "已添加到日历提醒",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 } 

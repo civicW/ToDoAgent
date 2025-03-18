@@ -18,14 +18,26 @@ import android.widget.TextView
 import android.widget.ImageView
 import com.asap.todoexmple.util.UserManager
 import com.asap.todoexmple.util.SessionManager
+import com.asap.todoexmple.util.LocalDatabaseHelper
+import android.content.pm.PackageManager
+
 
 class SettingsActivity : AppCompatActivity() {
+    // 添加 LocalDatabaseHelper 实例
+    private lateinit var localDatabaseHelper: LocalDatabaseHelper
+
+    companion object {
+        private const val CALENDAR_PERMISSION_REQUEST_CODE = 1001
+    }
 
     @SuppressLint("BatteryLife")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
+
+        // 初始化 LocalDatabaseHelper
+        localDatabaseHelper = LocalDatabaseHelper(this)
 
         // 返回按钮点击事件
         findViewById<View>(R.id.btnBack).setOnClickListener {
@@ -38,6 +50,7 @@ class SettingsActivity : AppCompatActivity() {
         // 这里添加其他设置项的点击事件处理
         findViewById<View>(R.id.layoutNotification).setOnClickListener {
             // 处理通知设置点击
+            startActivity(Intent(this, NotificationSettingsActivity::class.java))
         }
 
         findViewById<View>(R.id.layoutLanguage).setOnClickListener {
@@ -45,7 +58,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.layoutHelp).setOnClickListener {
-            // 处理帮助与反馈点击
+            //帮助中心
         }
 
         findViewById<View>(R.id.layoutAbout).setOnClickListener {
@@ -170,5 +183,43 @@ class SettingsActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.layoutAccountSecurity).visibility = 
             if (isLoggedIn) View.VISIBLE else View.GONE
+    }
+
+
+
+    private fun createCalendarReminder() {
+        val todoListId = "1" // 替换为实际的 todoListId
+        localDatabaseHelper.createCalendarReminder(this, todoListId)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        
+        when (requestCode) {
+            CALENDAR_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && 
+                    grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    // 用户授予了所有权限
+                    createCalendarReminder()
+                } else {
+                    // 用户拒绝了权限
+                    Toast.makeText(
+                        this,
+                        "需要日历权限才能创建提醒",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    // 在 Activity 销毁时关闭数据库连接
+    override fun onDestroy() {
+        super.onDestroy()
+        localDatabaseHelper.close()
     }
 } 

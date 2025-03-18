@@ -3,9 +3,16 @@ package com.asap.todoexmple.util
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.Manifest
+import android.provider.CalendarContract
+import android.content.ContentValues
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.*
+import java.text.SimpleDateFormat
 
 class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
     companion object {
@@ -41,6 +48,9 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
                 FOREIGN KEY (user_id) REFERENCES user_settings(user_id) ON DELETE CASCADE
             )
         """
+
+        // 添加日历权限常量
+        private const val CALENDAR_PERMISSION = Manifest.permission.WRITE_CALENDAR
 
         // 静态工具方法
         fun saveUserInfo(context: Context, userId: String, username: String) {
@@ -371,6 +381,96 @@ class LocalDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
 
     private fun updateLastSyncTime(db: SQLiteDatabase, userId: String) {
         // 更新最后同步时间的实现
+    }
+    // 在需要创建日历提醒的地方
+    //localDatabaseHelper.createCalendarReminder(context, todoListId)
+    // 添加创建日历提醒的方法
+    fun createCalendarReminder(context: Context, listId: String) {
+        if (ContextCompat.checkSelfPermission(context, CALENDAR_PERMISSION)
+            != PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "没有日历权限")
+            return
+        }
+
+        readableDatabase.use { db ->
+            val cursor = db.query(
+                "ToDoListLocal",
+                arrayOf("start_time", "end_time", "location", "todo_content"),
+                "list_id = ?",
+                arrayOf(listId),
+                null, null, null
+            )
+
+            cursor.use { 
+                if (cursor.moveToFirst()) {
+                    val startTime = cursor.getString(cursor.getColumnIndexOrThrow("start_time"))
+                    val endTime = cursor.getString(cursor.getColumnIndexOrThrow("end_time"))
+                    val location = cursor.getString(cursor.getColumnIndexOrThrow("location"))
+                    val content = cursor.getString(cursor.getColumnIndexOrThrow("todo_content"))
+
+                    try {
+                        // 获取默认日历ID
+                        val calendarId = getDefaultCalendarId(context)
+                        
+                        // 创建事件
+                        val values = ContentValues().apply {
+                            put(CalendarContract.Events.CALENDAR_ID, calendarId)
+                            put(CalendarContract.Events.TITLE, content)
+                            put(CalendarContract.Events.DESCRIPTION, content)
+                            put(CalendarContract.Events.EVENT_LOCATION, location)
+                            put(CalendarContract.Events.DTSTART, parseDateTime(startTime))
+                            put(CalendarContract.Events.DTEND, parseDateTime(endTime))
+                            put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
+                        }
+
+                        // 插入事件
+                        val eventUri = context.contentResolver.insert(
+                            CalendarContract.Events.CONTENT_URI, values)
+                        
+                        // 添加提醒（默认提前15分钟）
+                        eventUri?.lastPathSegment?.let { eventId ->
+                            val reminderValues = ContentValues().apply {
+                                put(CalendarContract.Reminders.EVENT_ID, eventId)
+                                put(CalendarContract.Reminders.MINUTES, 15)
+                                put(CalendarContract.Reminders.METHOD, 
+                                    CalendarContract.Reminders.METHOD_ALERT)
+                            }
+                            context.contentResolver.insert(
+                                CalendarContract.Reminders.CONTENT_URI, reminderValues)
+                        }
+
+                        Log.d(TAG, "日历提醒创建成功")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "创建日历提醒失败", e)
+                    }
+                }
+            }
+        }
+    }
+
+    // 获取默认日历ID
+    private fun getDefaultCalendarId(context: Context): Long {
+        val projection = arrayOf(CalendarContract.Calendars._ID)
+        val selection = "${CalendarContract.Calendars.IS_PRIMARY} = 1"
+        
+        context.contentResolver.query(
+            CalendarContract.Calendars.CONTENT_URI,
+            projection,
+            selection,
+            null,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getLong(0)
+            }
+        }
+        throw Exception("未找到默认日历")
+    }
+
+    // 解析日期时间字符串为时间戳
+    private fun parseDateTime(dateTimeStr: String): Long {
+        return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            .parse(dateTimeStr)?.time ?: System.currentTimeMillis()
     }
 }
 

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.ComponentName
+import android.content.Context
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -50,6 +51,11 @@ class NotificationMonitorService : NotificationListenerService() {
     private val notificationRepository = NotificationRepository()
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
+    private fun isAppEnabled(packageName: String): Boolean {
+        val sharedPrefs = getSharedPreferences("notification_settings", Context.MODE_PRIVATE)
+        return sharedPrefs.getBoolean(packageName, false)
+    }
+
     private fun handleNotification(notificationPkg: String, notificationTitle: String?, notificationText: String?) {
         serviceScope.launch {
             try {
@@ -82,6 +88,16 @@ class NotificationMonitorService : NotificationListenerService() {
         val notificationPkg = sbn.packageName
         val notificationTitle = extras.getString(Notification.EXTRA_TITLE)
         val notificationText = extras.getString(Notification.EXTRA_TEXT)
+
+        // 添加日志
+        Log.d("NotificationService", "收到通知，包名: $notificationPkg")
+        
+        // 记录发出通知的包名
+        NotificationPackages.addPackage(notificationPkg)
+
+        if (isAppEnabled(notificationPkg) && notificationPkg != "com.tencent.mm") {
+            handleNotification(notificationPkg, notificationTitle, notificationText)
+        }
 
         if (notificationPkg == "com.tencent.mm") {
             Log.d("NotificationService", "收到通知：$notificationTitle - $notificationText")

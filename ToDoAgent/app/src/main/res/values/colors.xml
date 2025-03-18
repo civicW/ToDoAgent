@@ -12,10 +12,6 @@
     <color name="white">#FFFFFFFF</color>
     <color name="blue_500">#3B82F6</color>
     <color name="green_500">#22C55E</color>
-    <color name="gray_200">#E5E7EB</color>
-    <color name="gray_400">#9CA3AF</color>
-    <color name="gray_500">#6B7280</color>
-    <color name="gray_600">#4B5563</color>
     <color name="indigo_500">#6366F1</color>
     <color name="yellow_500">#EAB308</color>
     <color name="red_500">#EF4444</color>
@@ -30,4 +26,16 @@
     <color name="background_dark">#FF121212</color>
     <color name="surface_light">#FFFFFFFF</color>
     <color name="surface_dark">#FF121212</color>
+
+    <!-- 灰度颜色系列 -->
+    <color name="gray_50">#F9FAFB</color>
+    <color name="gray_100">#F3F4F6</color>
+    <color name="gray_200">#E5E7EB</color>
+    <color name="gray_300">#D1D5DB</color>
+    <color name="gray_400">#9CA3AF</color>
+    <color name="gray_500">#6B7280</color>
+    <color name="gray_600">#4B5563</color>
+    <color name="gray_700">#374151</color>
+    <color name="gray_800">#1F2937</color>
+    <color name="gray_900">#111827</color>
 </resources>
