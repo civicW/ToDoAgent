@@ -1,6 +1,9 @@
 # ToDoAgent
 Microsoft Azure Enabled LLM Agent that helps you read apps notifications, emails, etc. Then generate a ToDo list with key person and deadline. The future version may directly help you finish the things on the generated ToDoList
 
+# What's New in the APP
+The current software version V0.0.8, mobile database version V0.0.4, cloud database version V0.0.3, now we have two more significant updates, one is pleased to tell you that you are now free to control which apps can be included in the information, in the Settings -> Notification Settings you can view the recent notification of harassment of the apps you can turn off in accordance with their wishes! You can turn off or turn on the permission to get notifications as you wish, of course, to let the server get the permission to get your notifications. We pay special attention to user privacy, so only apps that have pushed messages will appear in the list. Secondly, it is now possible to manually update calendar notifications. Tap the little calendar next to the to-do list and you'll be surprised to find that, oops, the system calendar has an extra substitute reminder, that's pretty cool, isn't it? I know that's really cool!
+
 # Connecting to the Database
 Starting from now, we can connect to the database, and also support WeChat groups and SMS.
 
