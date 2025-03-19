@@ -1,0 +1,4 @@
+python==3.12
+mysql
+mysql-connector
+python-dotenv
